@@ -191,3 +191,32 @@ class PacerFreeOpinionsTest(unittest.TestCase):
         self.assertFalse(
             mock_session.post.called, msg="should not trigger a POST query"
         )
+
+
+class PacerMagicNumberTest(unittest.TestCase):
+    """A variety of tests relating to the Free Written Opinions report"""
+
+    def setUp(self):
+
+        with open(os.path.join(JURISCRAPER_ROOT, "pacer/courts.json")) as j:
+            self.courts = get_courts_from_json(json.load(j))
+
+        path = os.path.join(
+            TESTS_ROOT_EXAMPLES_PACER, "dates/valid_free_opinion_dates.json"
+        )
+        with open(path) as j:
+            self.valid_dates = json.load(j)
+
+        self.reports = {}
+        court_id = "nysd"
+        self.reports[court_id] = FreeOpinionReport(court_id, None)
+
+    def test_download_simple_pdf(self):
+        """Can we download a PDF document returned directly?"""
+        report = self.reports["nysd"]
+        r = report.download_magic_pdf(
+            "546923", "127130877815", "1712", "48734826"
+        )
+        print("**** Response r", r)
+        self.assertEqual(r.headers["Content-Type"], "application/pdf")
+        # self.assertEqual(r.headers["Content-Type"], "text/html")

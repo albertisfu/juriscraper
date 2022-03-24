@@ -18,6 +18,7 @@ from .utils import is_pdf, make_doc1_url
 
 logger = make_default_logger()
 
+import requests
 
 # Patch the HtmlElement class to add a function that can handle regular
 # expressions within XPath queries. See usages throughout AppellateDocketReport.
@@ -252,6 +253,65 @@ class BaseReport:
             return None
 
         r = self.session.get(iframe_src)
+        if is_pdf(r):
+            logger.info(
+                "Got iframed PDF data for case %s at: %s", url, iframe_src
+            )
+
+        return r
+
+    def download_magic_pdf(
+        self, pacer_case_id, pacer_doc_id, de_seq_num, pacer_magic_num
+    ):
+        """Download a PDF from PACER.
+
+        Note that this doesn't support attachments yet.
+
+        :returns: request.Response object containing a PDF, if one can be found
+        (is not sealed, gone, etc.). Else, returns None.
+        """
+        # TODO verify if pacer_doc_id is it correct or we have to replace with a 0
+        url = make_doc1_url(self.court_id, pacer_doc_id, True)
+        params = {
+            "caseid": pacer_case_id,
+            "de_seq_num": de_seq_num,
+            "magic_num": pacer_magic_num,
+        }
+        r = requests.get(url, params=params)
+
+        # The request above sometimes generates an HTML page with an iframe
+        # containing the PDF, and other times returns the PDF directly. ∴
+        # either get the src of the iframe and download the PDF or just return
+        # the pdf.
+        r.raise_for_status()
+        if is_pdf(r):
+            logger.info("Got PDF binary data for case at %s", url)
+            return r
+
+        text = clean_html(r.text)
+        tree = get_html_parsed_text(text)
+        tree.rewrite_links(fix_links_in_lxml_tree, base_href=r.url)
+        try:
+            iframe_src = tree.xpath("//iframe/@src")[0]
+        except IndexError:
+            if "pdf:Producer" in text:
+                logger.error(
+                    "Unable to download PDF. PDF content was placed "
+                    "directly in HTML. URL: %s, caseid: %s",
+                    url,
+                    pacer_case_id,
+                )
+            else:
+                logger.error(
+                    "Unable to download PDF. PDF not served as "
+                    "binary data and unable to find iframe src "
+                    "attribute. URL: %s, caseid: %s",
+                    url,
+                    pacer_case_id,
+                )
+            return None
+
+        r = requests.get(iframe_src)
         if is_pdf(r):
             logger.info(
                 "Got iframed PDF data for case %s at: %s", url, iframe_src
