@@ -1,5 +1,7 @@
+import datetime
 import json
 import re
+import socket
 
 import requests
 from requests.packages.urllib3 import exceptions
@@ -100,6 +102,7 @@ class PacerSession(requests.Session):
         self.username = username
         self.password = password
         self.client_code = client_code
+        self.log_error_data = None
 
     def get(self, url, auto_login=True, **kwargs):
         """Overrides request.Session.get with session retry logic.
@@ -359,6 +362,15 @@ class PacerSession(requests.Session):
             self.login()
             return True
         else:
+            hostname = socket.gethostname()
+            server_ip = socket.gethostbyname(hostname)
+            date_time = datetime.datetime.now(datetime.timezone.utc)
+            log_data = {
+                "server_ip": server_ip,
+                "date_time": date_time,
+                "status_code": r.status_code,
+            }
+            self.log_error_data = log_data
             raise PacerLoginException(
                 "Invalid/expired PACER session and do not have credentials "
                 "for re-login."
