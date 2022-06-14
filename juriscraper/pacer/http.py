@@ -102,7 +102,6 @@ class PacerSession(requests.Session):
         self.username = username
         self.password = password
         self.client_code = client_code
-        self.log_error_data = None
 
     def get(self, url, auto_login=True, **kwargs):
         """Overrides request.Session.get with session retry logic.
@@ -362,16 +361,39 @@ class PacerSession(requests.Session):
             self.login()
             return True
         else:
-            hostname = socket.gethostname()
-            server_ip = socket.gethostbyname(hostname)
-            date_time = datetime.datetime.now(datetime.timezone.utc)
-            log_data = {
-                "server_ip": server_ip,
-                "date_time": date_time,
-                "status_code": r.status_code,
-            }
-            self.log_error_data = log_data
             raise PacerLoginException(
                 "Invalid/expired PACER session and do not have credentials "
                 "for re-login."
             )
+
+def check_pacer_court_connectivity(court_id):
+    """Check if PACER is accessible for the given court.
+
+        :param court_id: The court ID to check.
+        :returns: True if PACER is accessible, False otherwise.
+    """
+
+    url = f"http://ecf.{court_id}.uscourts.gov/"
+
+    connection_ok =  False
+    status_code = None
+    try:
+        r = requests.get(url, timeout=5)
+        if r.status_code == requests.codes.ok:
+            connection_ok =  True
+        status_code = r.status_code
+    except requests.exceptions.RequestException as e:
+        connection_ok = False
+
+    hostname = socket.gethostname()
+    ip_addr = socket.gethostbyname(hostname)
+    date_time = datetime.datetime.now(datetime.timezone.utc)
+
+    blocked_dict = {
+        "connection_ok": connection_ok,
+        "status_code": status_code,
+        "ip": ip_addr,
+        "date_time": date_time
+    }
+
+    return blocked_dict
