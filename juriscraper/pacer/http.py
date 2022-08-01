@@ -349,6 +349,7 @@ class PacerSession(requests.Session):
             return False
 
         logged_in = check_if_logged_in_page(r.text)
+        logger.warning("**********<<<<<<< Debug loggin in text: ", r.text)
         if logged_in:
             return False
 
