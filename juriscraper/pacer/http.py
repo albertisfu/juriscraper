@@ -25,6 +25,7 @@ def check_if_logged_in_page(content: bytes) -> bool:
     :return boolean: True if logged in, False if not.
     """
 
+    logger.info("HTML from PACER: ", content)
     valid_case_number_query = (
         b"<case number=" in content
         or b"<request number=" in content
