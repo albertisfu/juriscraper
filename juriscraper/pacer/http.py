@@ -380,6 +380,7 @@ class PacerSession(requests.Session):
         if logged_in:
             return False
 
+        logger.info(f"------- Logged in: {logged_in}")
         if self.username and self.password:
             logger.info(
                 "Invalid/expired PACER session. Establishing new session."
@@ -390,7 +391,9 @@ class PacerSession(requests.Session):
             # Do an additional try, hopefully the content is returned properly this time
             # See https://github.com/freelawproject/courtlistener/issues/2160
             if self.check_if_logged_in_count == 0:
+                logger.info(f"--------- Doing and addition try, check counter: {self.check_if_logged_in_count}")
                 return True
+            logger.info(f"--------- Raising PacerLoginException, check counter: {self.check_if_logged_in_count}")
             raise PacerLoginException(
                 "Invalid/expired PACER session and do not have credentials "
                 "for re-login."
