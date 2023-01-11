@@ -654,6 +654,14 @@ class AppellateDocketReport(BaseDocketReport, BaseReport):
             # No originating court info.
             return {}
 
+        is_none = ogc_table.re_xpath(
+            './/*[re:match(text(), "None")]/ancestor::td[1]'
+        )
+        originating_court_rows = ogc_table.xpath(".//tr")
+        if len(originating_court_rows) == 2 and is_none:
+            # No originating court info.
+            return {}
+
         ogc_info = {}
         docket_number_node_str = ogc_table.re_xpath(
             './/*[re:match(text(), "District")]/ancestor::td[1]'
