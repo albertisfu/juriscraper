@@ -116,23 +116,4 @@ class ListOfCreditors(BaseDocketReport, BaseReport):
         logger.info(f"Getting a valid POST param for '{self.court_id}'")
         self.response = self.session.get(self.url)
         self.parse()
-
         post_param = self._get_valid_post_param()
-        params = {
-            "all_case_ids": pacer_case_id,
-            "case_num": docket_number,
-            "typfmt": "rawfrmt",  # Returns raw data.
-            "SMG": "",  # Special mailing group empty.
-        }
-
-        logger.info(
-            "Querying list of creditors for case ID '%s' in court '%s' "
-            "with params %s",
-            pacer_case_id,
-            self.court_id,
-            params,
-        )
-        self.response = self.session.post(
-            f"{self.url}?{post_param}", data=params
-        )
-        self.parse()
